@@ -1,6 +1,6 @@
-# 🌿 TrailFox — Market Opportunity
+# TrailFox
 
-## 🚨 The Problem
+## The Problem
 
 AllTrails has **60M+ users** who go outside to hike, but the experience ends at the trail.  
 There’s no equivalent app that tells you **what wildlife and plants you’ll encounter along the way**.
@@ -11,7 +11,7 @@ Meanwhile, **iNaturalist** has an incredible biodiversity database, but it’s b
 
 —not casual outdoor users.
 
-### 🔎 The Gap
+### The Gap
 
 > **AllTrails tells you where to go.  
 iNaturalist tells you what’s there.  
@@ -19,15 +19,15 @@ Nobody combines the two.**
 
 ---
 
-## 😕 Pain Points for Outdoor Users
+## Pain Points for Outdoor Users
 
-- ❌ Don’t know what species are in their area without deep research  
-- ❌ Can’t plan hikes around seasonal wildlife (wildflowers, migrations, etc.)  
-- ❌ No easy way to discover biodiversity hotspots like you would trails  
+- Don’t know what species are in their area without deep research  
+- Can’t plan hikes around seasonal wildlife (wildflowers, migrations, etc.)  
+- No easy way to discover biodiversity hotspots like you would trails  
 
 ---
 
-## 🏔️ AllTrails (The Competitor)
+## AllTrails (The Competitor)
 
 - 60M+ registered users  
 - 1M+ paying subscribers  
@@ -37,7 +37,7 @@ Nobody combines the two.**
 
 ---
 
-## 🌎 iNaturalist (The Data Source)
+## iNaturalist (The Data Source)
 
 - 250M+ observations  
 - ~4M contributors, 400K+ identifiers  
@@ -47,7 +47,7 @@ Nobody combines the two.**
 
 ---
 
-## 💰 The Outdoor Recreation Economy
+## The Outdoor Recreation Economy
 
 - $696.7B contribution to U.S. GDP (2024)  
 - $1.3T total economic output  
@@ -58,7 +58,7 @@ Nobody combines the two.**
 
 ---
 
-## 🦅 Wildlife & Nature Tourism
+## Wildlife & Nature Tourism
 
 - $190.7B global market (2025) → projected **$381B by 2033**  
 - Birdwatching alone = **$70B market**  
@@ -66,9 +66,9 @@ Nobody combines the two.**
 
 ---
 
-# 📊 Market Sizing (TAM / SAM / SOM)
+# Market Sizing (TAM / SAM / SOM)
 
-## 🌍 TAM (Total Addressable Market)
+## TAM (Total Addressable Market)
 **~$190B**
 
 Global wildlife tourism:
@@ -80,7 +80,7 @@ Global wildlife tourism:
 
 ---
 
-## 📱 SAM (Serviceable Available Market)
+## SAM (Serviceable Available Market)
 **~$2B – $5B**
 
 Digital outdoor + nature apps:
@@ -93,7 +93,7 @@ If even a small % of the **96M birdwatchers** pay $3–5/month → **billions in
 
 ---
 
-## 🚀 SOM (Serviceable Obtainable Market)
+## SOM (Serviceable Obtainable Market)
 **~$10M – $50M (Years 1–3)**
 
 Initial target:
@@ -104,17 +104,17 @@ Initial target:
   - Pacific Northwest  
   - Southeast  
 
-### 📈 Example Growth Model
+### Example Growth Model
 
 - 500K users (Year 1)  
 - 2% conversion → 10K paying users  
 - $30/year subscription  
 
-👉 **~$300K ARR starting point**
+**~$300K ARR starting point**
 
 ---
 
-## 🔥 Scaling Opportunities
+## Scaling Opportunities
 
 - Species checklists  
 - Seasonal wildlife alerts  
@@ -123,9 +123,9 @@ Initial target:
 
 ---
 
-# 🌟 Why WildScout Wins
+# Why TrailFox Wins
 
-WildScout bridges the gap between:
+TrialFox bridges the gap between:
 - 🗺️ **Where to go (AllTrails)**  
 - 🌿 **What you’ll see (iNaturalist)**  
 
