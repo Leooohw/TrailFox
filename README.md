@@ -1,4 +1,4 @@
-# 🌿 WildScout — Market Opportunity
+# 🌿 TrailFox — Market Opportunity
 
 ## 🚨 The Problem
 
