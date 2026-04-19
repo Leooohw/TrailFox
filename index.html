@@ -3,111 +3,180 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>WildTrails</title>
+  <title>TrailFox</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     :root{
+      --orange:#E8740C;--orange-light:#FEF0E4;--orange-dark:#7A3A04;
       --green:#1D9E75;--green-light:#E1F5EE;--green-dark:#085041;
-      --amber:#EF9F27;--purple:#7F77DD;--coral:#D85A30;--teal:#5DCAA5;
+      --blue:#4285F4;
       --bg:#ffffff;--bg2:#f7f7f5;--bg3:#f0efea;
       --text:#1a1a18;--text2:#5f5e5a;--text3:#9c9a92;
       --border:rgba(0,0,0,0.1);--radius:12px;--radius-sm:8px;
+      --sheet-height:62%;
     }
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#e8e8e8;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
-
-    /* Phone shell */
-    .phone{width:390px;height:844px;background:var(--bg);border-radius:44px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 40px 80px rgba(0,0,0,0.3);position:relative;border:1px solid rgba(0,0,0,0.15)}
-    .status-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 28px 4px;font-size:12px;font-weight:600;color:var(--text);flex-shrink:0;z-index:100;background:var(--bg)}
+    /* Apple Maps dark — warm dark grey, not pure black */
+    .dark{
+      --bg:#3a3a3c;--bg2:#2c2c2e;--bg3:#48484a;
+      --text:#f2f2f7;--text2:#d1d1d6;--text3:#aeaeb2;
+      --border:rgba(255,255,255,0.12);
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1c1c1e;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
+    .phone{width:390px;height:844px;background:var(--bg);border-radius:44px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 40px 80px rgba(0,0,0,0.5);position:relative;border:1px solid rgba(255,255,255,0.08)}
+    .status-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 4px;font-size:12px;font-weight:600;color:var(--text);flex-shrink:0;z-index:100;background:var(--bg);position:relative}
+    .logo-center{position:absolute;left:50%;transform:translateX(-50%);font-size:15px;font-weight:800;color:var(--orange);letter-spacing:-0.3px}
     .screen{display:none;flex:1;flex-direction:column;overflow:hidden;position:relative}
     .screen.active{display:flex}
-    .nav-bar{display:flex;justify-content:space-around;align-items:center;padding:12px 0 24px;border-top:0.5px solid var(--border);background:var(--bg);flex-shrink:0;z-index:50}
+    .nav-bar{display:flex;justify-content:space-around;align-items:center;padding:10px 0 22px;border-top:0.5px solid var(--border);background:var(--bg);flex-shrink:0;z-index:50}
     .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex:1;opacity:0.35;transition:opacity 0.2s}
     .nav-item.active{opacity:1}
     .nav-label{font-size:10px;color:var(--text2);font-weight:500}
-    .nav-item.active .nav-label{color:var(--green)}
+    .nav-item.active .nav-label{color:var(--orange)}
 
-    /* Map screen */
-    #map{flex:1;z-index:1}
-    .map-top{position:absolute;top:0;left:0;right:0;z-index:10;padding:12px}
-    .search-bar{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:24px;padding:10px 16px;box-shadow:0 2px 12px rgba(0,0,0,0.12);border:0.5px solid var(--border)}
-    .search-bar input{border:none;outline:none;font-size:14px;color:var(--text);background:transparent;flex:1}
+    /* MAP */
+    #map{position:absolute;inset:0;z-index:1}
+    .map-top{position:absolute;top:0;left:0;right:0;z-index:10;padding:10px 12px 0}
+    .search-wrap{position:relative;display:flex;align-items:center;gap:8px}
+    .search-bar{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:24px;padding:9px 14px;box-shadow:0 2px 16px rgba(0,0,0,0.18);border:0.5px solid var(--border);flex:1}
+    .search-bar input{border:none;outline:none;font-size:13px;color:var(--text);background:transparent;flex:1;min-width:0}
     .search-bar input::placeholder{color:var(--text3)}
-    .locate-btn{width:36px;height:36px;border-radius:50%;background:var(--bg);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.1);flex-shrink:0}
+    .search-results{position:absolute;top:46px;left:0;right:52px;background:var(--bg);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,0.18);border:0.5px solid var(--border);z-index:20;display:none;max-height:220px;overflow-y:auto}
+    .search-result-item{padding:10px 14px;font-size:13px;color:var(--text);cursor:pointer;border-bottom:0.5px solid var(--border)}
+    .search-result-item:last-child{border-bottom:none}
+    .search-result-item:active{background:var(--bg2)}
+    .locate-btn{width:40px;height:40px;border-radius:50%;background:var(--bg);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.15);flex-shrink:0}
 
-    /* Bottom sheet */
-    .bottom-sheet{position:absolute;bottom:0;left:0;right:0;background:var(--bg);border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.1);z-index:10;padding:10px 0 0;max-height:65%;overflow:hidden;display:flex;flex-direction:column}
-    .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 12px}
-    .sheet-scroll{overflow-y:auto;padding:0 16px 16px;flex:1}
+    /* BOTTOM SHEET */
+    .bottom-sheet{position:absolute;bottom:0;left:0;right:0;background:var(--bg);border-radius:20px 20px 0 0;box-shadow:0 -2px 20px rgba(0,0,0,0.1);z-index:10;display:flex;flex-direction:column;transition:height 0.35s cubic-bezier(0.4,0,0.2,1);height:var(--sheet-height)}
+    .bottom-sheet.minimized{height:88px}
+    .sheet-handle-wrap{padding:8px 0 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0}
+    .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px}
+    .mini-preview{display:none;padding:0 14px 6px;gap:10px;align-items:center;width:100%}
+    .bottom-sheet.minimized .mini-preview{display:flex}
+    .bottom-sheet.minimized .sheet-scroll{display:none}
+    .mini-img{width:38px;height:38px;border-radius:9px;object-fit:cover;flex-shrink:0;background:var(--bg2)}
+    .mini-placeholder{width:38px;height:38px;border-radius:9px;background:var(--orange-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .mini-info{flex:1;min-width:0}
+    .mini-species-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mini-trail-name{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+    .mini-pct{font-size:14px;font-weight:700;color:var(--green);flex-shrink:0}
+    .sheet-scroll{overflow-y:auto;padding:0 14px 14px;flex:1}
     .sheet-scroll::-webkit-scrollbar{display:none}
     .section-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
     .section-title{font-size:14px;font-weight:600;color:var(--text)}
-    .see-all{font-size:12px;color:var(--green);font-weight:500;cursor:pointer}
-    .radius-pills{display:flex;gap:6px;margin-bottom:12px}
-    .pill{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--border);color:var(--text2);background:var(--bg2);transition:all 0.15s}
-    .pill.active{background:var(--green-light);border-color:var(--green);color:var(--green-dark)}
-    .species-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px}
+    .see-all{font-size:12px;color:var(--orange);font-weight:500;cursor:pointer}
+
+    /* FILTER — single scrollable row, no wrap */
+    .filter-row{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+    .filter-row::-webkit-scrollbar{display:none}
+    .pill{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--border);color:var(--text2);background:var(--bg2);transition:all 0.15s;white-space:nowrap;flex-shrink:0}
+    .pill.active{background:var(--orange-light);border-color:var(--orange);color:var(--orange-dark)}
+    .pill.radius-pill.active{background:var(--green-light);border-color:var(--green);color:var(--green-dark)}
+
+    /* SPECIES */
+    .species-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px;-webkit-overflow-scrolling:touch}
     .species-row::-webkit-scrollbar{display:none}
     .species-card{flex-shrink:0;width:96px;border-radius:var(--radius);overflow:hidden;border:0.5px solid var(--border);cursor:pointer;transition:transform 0.15s,border-color 0.15s;background:var(--bg)}
     .species-card:active{transform:scale(0.96)}
-    .species-card.selected{border:2px solid var(--green)}
+    .species-card.selected{border:2px solid var(--orange)}
     .species-img{width:96px;height:76px;object-fit:cover;display:block;background:var(--bg2)}
     .species-img-placeholder{width:96px;height:76px;display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--bg2)}
-    .species-info{padding:6px 8px 8px}
+    .species-info{padding:6px 8px 8px;background:var(--bg)}
     .species-name{font-size:10px;font-weight:600;color:var(--text);line-height:1.3}
     .species-count{font-size:9px;color:var(--text3);margin-top:2px}
-    .loading-row{display:flex;gap:10px;overflow:hidden;padding-bottom:8px}
     .skeleton{background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:var(--radius-sm)}
     @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-    /* Trail cards */
+    /* TRAIL CARDS */
     .trail-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg2);border-radius:var(--radius);margin-bottom:8px;cursor:pointer;border:0.5px solid var(--border);transition:all 0.15s}
     .trail-card:active{transform:scale(0.98)}
     .trail-card.top{border:1.5px solid var(--green);background:var(--green-light)}
+    .dark .trail-card.top{background:#1a3d2e;border-color:#2a6648}
+    .dark .trail-card.top .trail-name-el{color:#e8f5ee}
+    .dark .trail-card.top .trail-sub{color:#7fc4a0}
+    .dark .trail-card.top .badge-high{background:#1a3d2e;color:#5DCAA5;border:0.5px solid #2a6648}
     .trail-icon{width:40px;height:40px;border-radius:10px;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0}
     .trail-icon.dim{background:#8fac8f}
     .trail-meta{flex:1;min-width:0}
-    .trail-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .trail-name-el{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .trail-sub{font-size:11px;color:var(--text2);margin-top:2px}
-    .badge{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600;background:var(--green-light);color:var(--green-dark);white-space:nowrap}
-    .badge.dim{background:var(--bg3);color:var(--text2)}
+    .pct-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:5px;overflow:hidden}
+    .pct-fill{height:100%;border-radius:2px;background:var(--green);transition:width 0.6s ease}
+    .badge-pill{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600;white-space:nowrap}
+    .badge-high{background:var(--green-light);color:var(--green-dark)}
+    .badge-med{background:#EAF1FE;color:#1a4fa0}
+    .badge-low{background:var(--bg3);color:var(--text2)}
     .empty-state{text-align:center;padding:20px;color:var(--text3);font-size:13px}
 
-    /* Identify screen */
-    .identify-screen{flex:1;background:#0a0a0a;display:flex;flex-direction:column;overflow:hidden}
-    .identify-header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#111}
-    .identify-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:20px 20px 28px}
-    .viewfinder{width:280px;height:280px;border-radius:20px;border:2px solid rgba(255,255,255,0.3);position:relative;overflow:hidden;background:#1a1a1a;display:flex;align-items:center;justify-content:center}
-    .vf-corner{position:absolute;width:24px;height:24px}
-    .vf-corner.tl{top:-1px;left:-1px;border-top:3px solid var(--green);border-left:3px solid var(--green);border-radius:8px 0 0 0}
-    .vf-corner.tr{top:-1px;right:-1px;border-top:3px solid var(--green);border-right:3px solid var(--green);border-radius:0 8px 0 0}
-    .vf-corner.bl{bottom:-1px;left:-1px;border-bottom:3px solid var(--green);border-left:3px solid var(--green);border-radius:0 0 0 8px}
-    .vf-corner.br{bottom:-1px;right:-1px;border-bottom:3px solid var(--green);border-right:3px solid var(--green);border-radius:0 0 8px 0}
-    .scan-bar{position:absolute;left:0;right:0;height:2px;background:var(--green);opacity:0.8;animation:scan 2s linear infinite;display:none}
-    @keyframes scan{0%{top:0}100%{top:100%}}
-    .vf-hint{color:rgba(255,255,255,0.3);font-size:13px;text-align:center;padding:20px}
-    .result-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.7);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:18px}
-    .result-name{color:white;font-size:16px;font-weight:700}
-    .result-sci{color:rgba(255,255,255,0.6);font-size:12px;font-style:italic}
-    .result-conf{color:var(--green);font-size:13px;font-weight:600}
-    .result-img{width:80px;height:80px;border-radius:12px;object-fit:cover;border:2px solid var(--green)}
-    .shutter{width:72px;height:72px;border-radius:50%;background:white;border:4px solid rgba(255,255,255,0.4);cursor:pointer;transition:transform 0.1s;flex-shrink:0}
-    .shutter:active{transform:scale(0.92)}
-    .upload-card{background:var(--bg);border-radius:16px;padding:14px 16px;width:100%;display:none}
-    .upload-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
-    .upload-sub{font-size:11px;color:var(--text2);margin-bottom:10px}
-    .upload-btns{display:flex;gap:8px}
-    .btn-primary{flex:1;padding:9px;background:var(--green);color:white;border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
-    .btn-secondary{flex:1;padding:9px;background:var(--bg2);color:var(--text2);border:none;border-radius:10px;font-size:12px;font-weight:500;cursor:pointer;text-align:center}
-    .upload-success{text-align:center;padding:8px;font-size:13px;font-weight:600;color:var(--green)}
-    .file-input{display:none}
-    .tap-hint{color:rgba(255,255,255,0.35);font-size:11px}
+    /* ROUTE INFO */
+    .route-info{background:#EAF1FE;border:0.5px solid var(--blue);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;display:none;align-items:center;gap:10px}
+    .route-info.show{display:flex}
+    .route-texts{flex:1}
+    .route-title{font-size:12px;font-weight:600;color:#1a4fa0}
+    .route-sub{font-size:11px;color:#1a4fa0;opacity:0.8;margin-top:1px}
+    .route-clear{font-size:11px;color:var(--text3);cursor:pointer;padding:4px 8px;border-radius:8px;background:rgba(0,0,0,0.06);white-space:nowrap;flex-shrink:0}
 
-    /* Profile screen */
+    /* IDENTIFY — full-screen Instagram-style */
+    .identify-screen{flex:1;background:#000;display:flex;flex-direction:column;position:relative;overflow:hidden}
+    .camera-bg{position:absolute;inset:0;z-index:1}
+    .demo-img{width:100%;height:100%;object-fit:cover;display:block}
+    .cam-overlay{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;pointer-events:none}
+    .cam-top-bar{display:flex;justify-content:space-between;align-items:center;padding:52px 18px 0;pointer-events:all}
+    .cam-label{color:rgba(255,255,255,0.75);font-size:13px;font-weight:500;text-shadow:0 1px 4px rgba(0,0,0,0.5)}
+    .cam-badge{color:var(--orange);font-size:11px;font-weight:700;background:rgba(0,0,0,0.45);padding:4px 10px;border-radius:20px;backdrop-filter:blur(8px)}
+    .vf-corners{position:absolute;inset:0;pointer-events:none}
+    .vfc{position:absolute;width:26px;height:26px}
+    .vfc.tl{top:110px;left:18px;border-top:3px solid var(--orange);border-left:3px solid var(--orange);border-radius:6px 0 0 0}
+    .vfc.tr{top:110px;right:18px;border-top:3px solid var(--orange);border-right:3px solid var(--orange);border-radius:0 6px 0 0}
+    .vfc.bl{bottom:200px;left:18px;border-bottom:3px solid var(--orange);border-left:3px solid var(--orange);border-radius:0 0 0 6px}
+    .vfc.br{bottom:200px;right:18px;border-bottom:3px solid var(--orange);border-right:3px solid var(--orange);border-radius:0 0 6px 0}
+    .scan-bar{position:absolute;left:18px;right:18px;height:2px;background:var(--orange);opacity:0.9;display:none;animation:scan 2s linear infinite}
+    @keyframes scan{0%{top:110px}100%{top:calc(100% - 200px)}}
+    .result-float{position:absolute;bottom:280px;left:0;right:0;display:none;flex-direction:column;align-items:center;gap:6px;padding:0 20px;pointer-events:none}
+    .result-name{color:white;font-size:24px;font-weight:800;text-align:center;text-shadow:0 2px 12px rgba(0,0,0,0.7)}
+    .result-sci{color:rgba(255,255,255,0.65);font-size:13px;font-style:italic;text-shadow:0 1px 6px rgba(0,0,0,0.5)}
+    .result-conf-pill{background:var(--orange);color:white;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;margin-top:2px}
+    .cam-bottom{position:absolute;bottom:0;left:0;right:0;z-index:3;background:rgba(0,0,0,0.52);backdrop-filter:blur(14px);padding:14px 18px 32px;pointer-events:all}
+    .upload-cam{background:rgba(255,255,255,0.1);border-radius:14px;padding:12px 14px;margin-bottom:12px;border:0.5px solid rgba(255,255,255,0.18);display:none}
+    .upload-cam-title{font-size:13px;font-weight:600;color:white;margin-bottom:2px}
+    .upload-cam-sub{font-size:11px;color:rgba(255,255,255,0.55);margin-bottom:10px}
+    .cam-btns{display:flex;gap:8px}
+    .cbtn-p{flex:1;padding:9px;background:var(--orange);color:white;border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer}
+    .cbtn-s{flex:1;padding:9px;background:rgba(255,255,255,0.12);color:white;border:0.5px solid rgba(255,255,255,0.25);border-radius:10px;font-size:12px;font-weight:500;cursor:pointer}
+    .cam-hint{color:rgba(255,255,255,0.38);font-size:11px;text-align:center;margin-bottom:12px}
+    .cam-controls-row{display:flex;align-items:center;justify-content:space-between;padding:0 8px}
+    .shutter{width:72px;height:72px;border-radius:50%;background:white;border:5px solid rgba(255,255,255,0.35);cursor:pointer;transition:transform 0.1s}
+    .shutter:active{transform:scale(0.88)}
+    .cam-side{width:50px;height:50px;border-radius:50%;border:2px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(0,0,0,0.28)}
+    .file-input{display:none}
+    .upload-success-cam{text-align:center;padding:8px;font-size:13px;font-weight:600;color:var(--orange)}
+
+    /* SPECIES MODAL */
+    .modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.52);z-index:200;display:none;align-items:flex-end}
+    .modal-overlay.show{display:flex}
+    .modal-card{background:var(--bg);border-radius:24px 24px 0 0;width:100%;max-height:84%;overflow-y:auto;position:relative}
+    .modal-card::-webkit-scrollbar{display:none}
+    .modal-hero{width:100%;height:220px;object-fit:cover;display:block;border-radius:24px 24px 0 0}
+    .modal-body{padding:16px 18px 28px}
+    .modal-name{font-size:21px;font-weight:700;color:var(--text);margin-bottom:3px}
+    .modal-sci{font-size:13px;font-style:italic;color:var(--text2);margin-bottom:10px}
+    .modal-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+    .modal-chip{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:var(--orange-light);color:var(--orange-dark)}
+    .modal-chip.g{background:var(--green-light);color:var(--green-dark)}
+    .modal-fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+    .modal-fact{background:var(--bg2);border-radius:var(--radius-sm);padding:10px;border:0.5px solid var(--border)}
+    .modal-fact-label{font-size:10px;color:var(--text3);margin-bottom:3px;font-weight:500}
+    .modal-fact-value{font-size:12px;font-weight:600;color:var(--text);line-height:1.3}
+    .modal-desc{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:16px}
+    .modal-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,0.38);display:flex;align-items:center;justify-content:center;cursor:pointer;color:white;z-index:10;border:none;font-size:13px}
+    .btn-primary{flex:1;padding:11px;background:var(--orange);color:white;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;width:100%}
+
+    /* PROFILE */
     .profile-scroll{flex:1;overflow-y:auto}
     .profile-scroll::-webkit-scrollbar{display:none}
     .profile-header{padding:20px 20px 16px;border-bottom:0.5px solid var(--border)}
-    .avatar{width:64px;height:64px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--green-dark);margin-bottom:10px}
+    .avatar{width:64px;height:64px;border-radius:50%;background:var(--orange-light);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:10px}
     .profile-name{font-size:18px;font-weight:700;color:var(--text)}
     .profile-loc{font-size:13px;color:var(--text3);margin-top:2px}
     .stat-row{display:flex;gap:8px;margin-top:14px}
@@ -119,120 +188,180 @@
     .obs-tile{border-radius:var(--radius);overflow:hidden;aspect-ratio:1;position:relative;cursor:pointer;background:var(--bg2)}
     .obs-tile img{width:100%;height:100%;object-fit:cover}
     .obs-tile-label{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.7));padding:8px 8px 6px;font-size:10px;font-weight:600;color:white}
+    .badges-section{padding:0 16px 16px}
+    .badges-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+    .badge-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+    .badge-circle{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid var(--border)}
+    .badge-circle.earned{border-color:var(--orange);background:var(--orange-light)}
+    .badge-circle.locked{opacity:0.3;background:var(--bg2)}
+    .badge-name{font-size:9px;color:var(--text2);text-align:center;font-weight:500;line-height:1.2}
     .settings-section{padding:0 16px 32px}
     .settings-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:0.5px solid var(--border);cursor:pointer}
     .settings-label{font-size:14px;color:var(--text)}
     .settings-value{font-size:13px;color:var(--text3)}
+    .toggle-wrap{position:relative;width:44px;height:26px}
+    .toggle-wrap input{opacity:0;width:0;height:0;position:absolute}
+    .toggle-slider{position:absolute;inset:0;background:var(--bg3);border-radius:13px;transition:background 0.2s;cursor:pointer}
+    .toggle-slider:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:white;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+    input:checked+.toggle-slider{background:var(--orange)}
+    input:checked+.toggle-slider:before{transform:translateX(18px)}
 
-    /* Leaflet overrides */
-    .leaflet-control-zoom{border:none!important;box-shadow:0 2px 12px rgba(0,0,0,0.15)!important}
-    .leaflet-control-zoom a{border-radius:8px!important;border:0.5px solid var(--border)!important;color:var(--text)!important;font-size:16px!important}
-    .leaflet-popup-content-wrapper{border-radius:12px!important;box-shadow:0 4px 20px rgba(0,0,0,0.15)!important}
-    .leaflet-popup-content{margin:12px 14px!important;font-family:-apple-system,sans-serif!important;font-size:13px!important}
+    /* LEAFLET */
+    .leaflet-control-zoom{display:none!important}
+    .leaflet-control-attribution{display:none!important}
+    .leaflet-popup-content-wrapper{border-radius:14px!important;box-shadow:0 4px 20px rgba(0,0,0,0.18)!important;background:var(--bg)!important}
+    .leaflet-popup-content{margin:12px 14px!important;font-family:-apple-system,sans-serif!important;font-size:13px!important;color:var(--text)!important}
+    .leaflet-popup-tip{background:var(--bg)!important}
     .inat-popup-name{font-weight:700;font-size:14px;color:var(--text);margin-bottom:2px}
-    .inat-popup-sci{font-style:italic;color:var(--text2);font-size:11px;margin-bottom:6px}
-    .inat-popup-meta{font-size:11px;color:var(--text3)}
+    .inat-popup-sci{font-style:italic;color:var(--text2);font-size:11px;margin-bottom:4px}
+    .inat-popup-time{font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:4px}
     .inat-popup-img{width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px}
-    .you-marker{width:18px;height:18px;background:var(--green);border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(29,158,117,0.25)}
-    .obs-marker{width:28px;height:28px;border-radius:50%;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer}
+    .inat-popup-btn{display:block;text-align:center;padding:7px;background:var(--orange-light);color:var(--orange-dark);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;margin-top:6px;border:none;width:100%}
+    .you-marker{width:16px;height:16px;background:#007AFF;border:3px solid white;border-radius:50%;box-shadow:0 0 0 6px rgba(0,122,255,0.20),0 2px 8px rgba(0,0,0,0.25)}
+    .obs-dot{border:2.5px solid white;border-radius:50%;box-shadow:0 1px 6px rgba(0,0,0,0.35)}
   </style>
-  <script src="config.js"></script>
 </head>
 <body>
+<div class="phone" id="phone">
 
-<div class="phone">
   <div class="status-bar">
     <span id="clock">9:41</span>
-    <span style="font-size:14px;font-weight:700;color:var(--green)">WildTrails</span>
-    <span>&#x1F4F6;</span>
+    <span class="logo-center">TrailFox</span>
+    <span style="font-size:11px;color:var(--text2)">&#x1F4F6;</span>
   </div>
 
-  <!-- EXPLORE SCREEN -->
+  <!-- EXPLORE -->
   <div class="screen active" id="screen-home">
     <div id="map"></div>
     <div class="map-top">
-      <div style="display:flex;gap:8px;align-items:center">
-        <div class="search-bar" style="flex:1">
-          <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" stroke="#9c9a92" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="#9c9a92" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <input id="location-label" type="text" placeholder="Detecting location..." readonly/>
+      <div class="search-wrap">
+        <div class="search-bar">
+          <svg width="15" height="15" fill="none" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" stroke="var(--text3)" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input id="search-input" type="text" placeholder="Search location or trail..."/>
         </div>
-        <div class="locate-btn" onclick="locateUser()">
-          <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><circle cx="9" cy="9" r="4" stroke="var(--green)" stroke-width="1.5"/><line x1="9" y1="1" x2="9" y2="4" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/><line x1="9" y1="14" x2="9" y2="17" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="9" x2="4" y2="9" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/><line x1="14" y1="9" x2="17" y2="9" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <div class="locate-btn" onclick="locateUser()" title="Center on my location">
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+            <circle cx="10" cy="10" r="3" fill="var(--orange)"/>
+            <circle cx="10" cy="10" r="5.5" stroke="var(--orange)" stroke-width="1.5" fill="none"/>
+            <line x1="10" y1="1" x2="10" y2="4.2" stroke="var(--orange)" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="10" y1="15.8" x2="10" y2="19" stroke="var(--orange)" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="1" y1="10" x2="4.2" y2="10" stroke="var(--orange)" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="15.8" y1="10" x2="19" y2="10" stroke="var(--orange)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
         </div>
+        <div class="search-results" id="search-results"></div>
       </div>
     </div>
-    <div class="bottom-sheet">
-      <div class="sheet-handle"></div>
+
+    <div class="bottom-sheet" id="bottom-sheet">
+      <div class="sheet-handle-wrap" onclick="toggleSheet()">
+        <div class="sheet-handle"></div>
+        <div class="mini-preview" id="mini-preview">
+          <div id="mini-placeholder" class="mini-placeholder">🐾</div>
+          <img id="mini-img" class="mini-img" src="" alt="" style="display:none"/>
+          <div class="mini-info">
+            <div class="mini-species-name" id="mini-species-name">Tap to expand</div>
+            <div class="mini-trail-name" id="mini-trail-name">Select a species for trail suggestions</div>
+          </div>
+          <div class="mini-pct" id="mini-pct"></div>
+        </div>
+      </div>
+
       <div class="sheet-scroll">
         <div class="section-row">
-          <span class="section-title">Recently seen nearby</span>
+          <span class="section-title">Nearby wildlife</span>
           <span class="see-all" onclick="loadSpecies()">Refresh</span>
         </div>
-        <div class="radius-pills">
-          <div class="pill active" onclick="setRadius(5,this)">5 km</div>
-          <div class="pill" onclick="setRadius(10,this)">10 km</div>
-          <div class="pill" onclick="setRadius(25,this)">25 km</div>
+        <div class="filter-row">
+          <div class="pill active" onclick="setFilter('animals',this)">🐾 Animals</div>
+          <div class="pill" onclick="setFilter('plants',this)">🌿 Plants</div>
+          <div class="pill" onclick="setFilter('insects',this)">🦋 Insects</div>
+          <div class="pill radius-pill active" onclick="setRadius(5,this)">5 km</div>
+          <div class="pill radius-pill" onclick="setRadius(10,this)">10 km</div>
+          <div class="pill radius-pill" onclick="setRadius(25,this)">25 km</div>
         </div>
         <div class="species-row" id="species-row">
-          <div class="loading-row">
+          <div style="display:flex;gap:10px">
             <div class="skeleton" style="width:96px;height:120px;flex-shrink:0"></div>
             <div class="skeleton" style="width:96px;height:120px;flex-shrink:0"></div>
             <div class="skeleton" style="width:96px;height:120px;flex-shrink:0"></div>
           </div>
         </div>
-        <div class="section-row" style="margin-top:8px">
-          <span class="section-title" id="trail-title">Recommended trails</span>
+        <div class="route-info" id="route-info">
+          <div class="route-texts">
+            <div class="route-title" id="route-title"></div>
+            <div class="route-sub" id="route-sub"></div>
+          </div>
+          <div class="route-clear" onclick="clearRoute()">✕ Clear</div>
+        </div>
+        <div class="section-row" style="margin-top:6px">
+          <span class="section-title" id="trail-title">Trail predictions</span>
         </div>
         <div id="trail-list">
-          <div class="empty-state">Select a species to see trail recommendations</div>
+          <div class="empty-state">Select a species to see predicted trails</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="species-modal">
+      <div class="modal-card">
+        <button class="modal-close" onclick="closeModal()">✕</button>
+        <img class="modal-hero" id="modal-img" src="" alt=""/>
+        <div class="modal-body">
+          <div class="modal-name" id="modal-name"></div>
+          <div class="modal-sci" id="modal-sci"></div>
+          <div class="modal-chips" id="modal-chips"></div>
+          <div class="modal-fact-grid" id="modal-facts"></div>
+          <div class="modal-desc" id="modal-desc">Loading species info...</div>
+          <button class="btn-primary" onclick="getDirectionsToModal()">Get directions to sighting</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- IDENTIFY SCREEN -->
+  <!-- IDENTIFY — full screen -->
   <div class="screen" id="screen-camera">
     <div class="identify-screen">
-      <div class="identify-header">
-        <span style="color:rgba(255,255,255,0.5);font-size:13px">Identify species</span>
-        <span style="color:var(--green);font-size:12px;font-weight:600">iNaturalist AI</span>
+      <div class="camera-bg">
+        <img id="demo-img" class="demo-img"
+          src="gorilla.jpg"
+          alt="Gorilla"
+          onerror="this.onerror=null;this.style.background='#1a1a1a'"/>
       </div>
-      <div class="identify-body">
-        <p style="color:rgba(255,255,255,0.4);font-size:12px;text-align:center">Point camera at any plant or animal</p>
-        <div class="viewfinder" id="viewfinder">
-          <div class="vf-corner tl"></div>
-          <div class="vf-corner tr"></div>
-          <div class="vf-corner bl"></div>
-          <div class="vf-corner br"></div>
-          <div class="scan-bar" id="scan-bar"></div>
-          <div class="vf-hint" id="vf-hint">Tap shutter or upload<br>a photo to identify</div>
-          <div class="result-overlay" id="result-overlay">
-            <img class="result-img" id="result-img" src="" alt=""/>
-            <div class="result-name" id="result-name"></div>
-            <div class="result-sci" id="result-sci"></div>
-            <div class="result-conf" id="result-conf"></div>
-          </div>
+      <div class="cam-overlay">
+        <div class="cam-top-bar">
+          <span class="cam-label">Identify species</span>
+          <span class="cam-badge">iNaturalist AI</span>
         </div>
-        <div class="upload-card" id="upload-card">
-          <div class="upload-title" id="upload-title"></div>
-          <div class="upload-sub" id="upload-sub"></div>
-          <div class="upload-btns">
-            <button class="btn-primary" onclick="uploadObservation()">Upload to map</button>
-            <button class="btn-secondary" onclick="resetCamera()">Discard</button>
-          </div>
+        <div class="vf-corners">
+          <div class="vfc tl"></div><div class="vfc tr"></div>
+          <div class="vfc bl"></div><div class="vfc br"></div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
-          <span class="tap-hint" id="tap-hint">Upload a photo to identify</span>
-          <div style="display:flex;align-items:center;gap:20px">
-            <label style="cursor:pointer" title="Upload photo">
+        <div class="scan-bar" id="scan-bar"></div>
+        <div class="result-float" id="result-overlay">
+          <div class="result-name" id="result-name"></div>
+          <div class="result-sci" id="result-sci"></div>
+          <div class="result-conf-pill" id="result-conf"></div>
+        </div>
+        <div class="cam-bottom">
+          <div class="upload-cam" id="upload-card">
+            <div class="upload-cam-title" id="upload-title"></div>
+            <div class="upload-cam-sub" id="upload-sub"></div>
+            <div class="cam-btns">
+              <button class="cbtn-p" onclick="uploadObservation()">Upload to map</button>
+              <button class="cbtn-s" onclick="resetCamera()">Discard</button>
+            </div>
+          </div>
+          <div class="cam-hint" id="tap-hint">Tap shutter to identify · or upload your own photo</div>
+          <div class="cam-controls-row">
+            <label class="cam-side">
               <input type="file" accept="image/*" class="file-input" id="photo-input" onchange="handlePhoto(event)"/>
-              <div style="width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center">
-                <svg width="22" height="22" fill="none" viewBox="0 0 22 22"><rect x="2" y="6" width="18" height="13" rx="3" stroke="white" stroke-width="1.5"/><path d="M8 6L9.5 3H12.5L14 6" stroke="white" stroke-width="1.5" stroke-linejoin="round"/><circle cx="11" cy="13" r="3" stroke="white" stroke-width="1.5"/></svg>
-              </div>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="3" stroke="white" stroke-width="1.5"/><circle cx="12" cy="14" r="3.5" stroke="white" stroke-width="1.5"/><path d="M9 7L10.5 4H13.5L15 7" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>
             </label>
-            <div class="shutter" id="shutter" onclick="document.getElementById('photo-input').click()"></div>
-            <div style="width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="resetCamera()">
-              <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M4 4L16 16M16 4L4 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div class="shutter" id="shutter" onclick="runDemoScan()"></div>
+            <div class="cam-side" onclick="resetCamera()">
+              <svg width="22" height="22" fill="none" viewBox="0 0 22 22"><path d="M5 5L17 17M17 5L5 17" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
             </div>
           </div>
         </div>
@@ -240,12 +369,12 @@
     </div>
   </div>
 
-  <!-- PROFILE SCREEN -->
+  <!-- PROFILE -->
   <div class="screen" id="screen-profile">
     <div class="profile-scroll">
       <div class="profile-header">
-        <div class="avatar" id="profile-avatar">W</div>
-        <div class="profile-name" id="profile-name">Wildlife Explorer</div>
+        <div class="avatar">🦊</div>
+        <div class="profile-name">Wildlife Explorer</div>
         <div class="profile-loc" id="profile-loc">Locating...</div>
         <div class="stat-row">
           <div class="stat-box"><div class="stat-num" id="stat-obs">0</div><div class="stat-lbl">Observations</div></div>
@@ -253,599 +382,472 @@
           <div class="stat-box"><div class="stat-num" id="stat-trails">0</div><div class="stat-lbl">Trails</div></div>
         </div>
       </div>
-      <div class="obs-section">
-        <div class="section-row">
-          <span class="section-title">My sightings</span>
-          <span class="see-all" id="sightings-count">0 uploaded</span>
+      <div class="badges-section">
+        <div class="section-row" style="padding-top:16px"><span class="section-title">Badges</span><span class="see-all">3 earned</span></div>
+        <div class="badges-grid">
+          <div class="badge-item"><div class="badge-circle earned">🦅</div><span class="badge-name">Bird Watcher</span></div>
+          <div class="badge-item"><div class="badge-circle earned">🦊</div><span class="badge-name">Fox Finder</span></div>
+          <div class="badge-item"><div class="badge-circle earned">🌿</div><span class="badge-name">First Upload</span></div>
+          <div class="badge-item"><div class="badge-circle locked">🐻</div><span class="badge-name">Bear Spotter</span></div>
+          <div class="badge-item"><div class="badge-circle locked">🦁</div><span class="badge-name">Predator Pro</span></div>
+          <div class="badge-item"><div class="badge-circle locked">🐬</div><span class="badge-name">Marine Life</span></div>
+          <div class="badge-item"><div class="badge-circle locked">🦋</div><span class="badge-name">Bug Hunter</span></div>
+          <div class="badge-item"><div class="badge-circle locked">🌲</div><span class="badge-name">Trail Master</span></div>
         </div>
+      </div>
+      <div class="obs-section" style="padding-top:0">
+        <div class="section-row"><span class="section-title">My sightings</span><span class="see-all" id="sightings-count">0 uploaded</span></div>
         <div class="obs-grid" id="obs-grid">
-          <div class="empty-state" style="grid-column:span 2;padding:30px">Upload species photos to see them here</div>
+          <div class="empty-state" style="grid-column:span 2;padding:24px">Upload species photos to see them here</div>
         </div>
       </div>
       <div class="settings-section">
-        <div class="section-title" style="margin-bottom:8px">Settings</div>
+        <div class="section-title" style="margin-bottom:8px;color:var(--text)">Settings</div>
+        <div class="settings-row">
+          <span class="settings-label">Dark mode</span>
+          <label class="toggle-wrap"><input type="checkbox" id="dark-toggle" onchange="toggleDark(this.checked)"/><span class="toggle-slider"></span></label>
+        </div>
         <div class="settings-row">
           <span class="settings-label">Notifications</span>
-          <span class="settings-value">On</span>
+          <label class="toggle-wrap"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
         </div>
-        <div class="settings-row">
-          <span class="settings-label">Data source</span>
-          <span class="settings-value">iNaturalist</span>
-        </div>
-        <div class="settings-row">
-          <span class="settings-label">Map style</span>
-          <span class="settings-value">Terrain</span>
-        </div>
-        <div class="settings-row">
-          <span class="settings-label">Units</span>
-          <span class="settings-value">Metric</span>
-        </div>
+        <div class="settings-row"><span class="settings-label">Data source</span><span class="settings-value">iNaturalist</span></div>
+        <div class="settings-row"><span class="settings-label">Map style</span><span class="settings-value">OpenStreetMap</span></div>
+        <div class="settings-row"><span class="settings-label">Units</span><span class="settings-value">Metric</span></div>
       </div>
     </div>
   </div>
 
-  <!-- NAV BAR -->
   <div class="nav-bar">
     <div class="nav-item active" id="nav-home" onclick="switchScreen('home')">
-      <svg width="22" height="22" fill="none" viewBox="0 0 22 22"><path d="M3 11L11 3L19 11V19H14V14H8V19H3V11Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <svg width="22" height="22" fill="none" viewBox="0 0 22 22" stroke="var(--text2)" stroke-width="1.5"><path d="M3 11L11 3L19 11V19H14V14H8V19H3V11Z" stroke-linejoin="round"/></svg>
       <span class="nav-label">Explore</span>
     </div>
     <div class="nav-item" id="nav-camera" onclick="switchScreen('camera')">
-      <svg width="22" height="22" fill="none" viewBox="0 0 22 22"><rect x="2" y="7" width="18" height="13" rx="3" stroke="currentColor" stroke-width="1.5"/><circle cx="11" cy="13.5" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 7L9.5 4H12.5L14 7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <svg width="22" height="22" fill="none" viewBox="0 0 22 22" stroke="var(--text2)" stroke-width="1.5"><rect x="2" y="7" width="18" height="13" rx="3"/><circle cx="11" cy="13.5" r="3.5"/><path d="M8 7L9.5 4H12.5L14 7" stroke-linejoin="round"/></svg>
       <span class="nav-label">Identify</span>
     </div>
     <div class="nav-item" id="nav-profile" onclick="switchScreen('profile')">
-      <svg width="22" height="22" fill="none" viewBox="0 0 22 22"><circle cx="11" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M3 20C3 16.134 6.686 13 11 13C15.314 13 19 16.134 19 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <svg width="22" height="22" fill="none" viewBox="0 0 22 22" stroke="var(--text2)" stroke-width="1.5"><circle cx="11" cy="8" r="4"/><path d="M3 20C3 16.134 6.686 13 11 13C15.314 13 19 16.134 19 20" stroke-linecap="round"/></svg>
       <span class="nav-label">Profile</span>
     </div>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="config.js"></script>
 <script>
-// ============================================================
-// CONFIG — REPLACE WITH YOUR TOKENS
-// ============================================================
-const MAPBOX_TOKEN = 'CONFIG.MAPBOX_TOKEN';
-const INAT_TOKEN   = 'CONFIG.INAT_TOKEN';
-const INAT_BASE    = 'https://api.inaturalist.org/v1';
+const INAT_TOKEN=typeof CONFIG!=='undefined'?CONFIG.INAT_TOKEN:'';
+const INAT_BASE='https://api.inaturalist.org/v1';
+let map,userMarker,routeLayer,lightTile,darkTile;
+let userLat=null,userLng=null,currentRadius=5,currentFilter='animals';
+let currentSpecies=null,selectedTrail=null;
+let obsMarkers=[],myObservations=[],trailsHiked=new Set();
+let sheetMinimized=false,currentModalObs=null,isDark=false;
 
-// ============================================================
-// STATE
-// ============================================================
-let map, userMarker, userLat, userLng;
-let currentRadius = 5;
-let currentSpecies = null;
-let obsMarkers = [];
-let myObservations = [];
-let trailsHiked = new Set();
+function updateClock(){const n=new Date();document.getElementById('clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');}
+updateClock();setInterval(updateClock,10000);
 
-// ============================================================
-// CLOCK
-// ============================================================
-function updateClock(){
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.getHours().toString().padStart(2,'0') + ':' +
-    now.getMinutes().toString().padStart(2,'0');
+// DARK MODE — keep same map tiles, just toggle UI theme
+function toggleDark(on){
+  isDark = on;
+  document.getElementById('phone').classList.toggle('dark', on);
 }
-updateClock();
-setInterval(updateClock, 10000);
 
-// ============================================================
-// SCREEN NAVIGATION
-// ============================================================
 function switchScreen(name){
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('screen-' + name).classList.add('active');
-  document.getElementById('nav-' + name).classList.add('active');
-  if(name === 'home' && map) setTimeout(() => map.invalidateSize(), 100);
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name==='home'&&map)setTimeout(()=>map.invalidateSize(),120);
 }
 
-// ============================================================
-// MAP INIT
-// ============================================================
-function initMap(lat, lng){
-  if(map) return;
-  map = L.map('map', {
-    center:[lat, lng],
-    zoom:13,
-    zoomControl:true,
-    attributionControl:false
-  });
-
-  // Mapbox satellite-streets tile layer
-  L.tileLayer(
-    `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`,
-    { maxZoom:18, tileSize:256 }
-  ).addTo(map);
-
-  // You marker
-  const youIcon = L.divIcon({
-    className:'',
-    html:'<div class="you-marker"></div>',
-    iconSize:[18,18],
-    iconAnchor:[9,9]
-  });
-  userMarker = L.marker([lat,lng], {icon:youIcon, zIndexOffset:1000}).addTo(map);
+function toggleSheet(){
+  sheetMinimized=!sheetMinimized;
+  document.getElementById('bottom-sheet').classList.toggle('minimized',sheetMinimized);
+  if(map)setTimeout(()=>map.invalidateSize(),380);
 }
 
-// ============================================================
-// GEOLOCATION
-// ============================================================
+function setMini(speciesName,photoUrl,trailName,pct){
+  document.getElementById('mini-species-name').textContent=speciesName||'Tap to expand';
+  document.getElementById('mini-trail-name').textContent=trailName||'Select a species for trail suggestions';
+  document.getElementById('mini-pct').textContent=pct?pct+'%':'';
+  const img=document.getElementById('mini-img'),ph=document.getElementById('mini-placeholder');
+  if(photoUrl){img.src=photoUrl;img.style.display='block';ph.style.display='none';}
+  else{img.style.display='none';ph.style.display='flex';}
+}
+
+function initMap(lat,lng){
+  if(map)return;
+  map=L.map('map',{center:[lat,lng],zoom:13,zoomControl:false,attributionControl:false});
+  lightTile=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+  userMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="you-marker"></div>',iconSize:[16,16],iconAnchor:[8,8]}),zIndexOffset:1000}).addTo(map);
+  setTimeout(()=>centerOnUser(),400);
+}
+
 function locateUser(){
-  if(!navigator.geolocation){
-    fallbackLocation();
-    return;
-  }
-  document.getElementById('location-label').placeholder = 'Locating...';
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      userLat = pos.coords.latitude;
-      userLng = pos.coords.longitude;
-      initMap(userLat, userLng);
-      if(userMarker) userMarker.setLatLng([userLat, userLng]);
-      map.setView([userLat, userLng], 13);
-      reverseGeocode(userLat, userLng);
-      loadSpecies();
-    },
-    () => fallbackLocation(),
-    { enableHighAccuracy:true, timeout:8000 }
-  );
+  if(!navigator.geolocation){fallback();return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userLat=pos.coords.latitude;userLng=pos.coords.longitude;
+    initMap(userLat,userLng);
+    userMarker&&userMarker.setLatLng([userLat,userLng]);
+    centerOnUser();
+    reverseGeocode(userLat,userLng);loadSpecies();
+  },()=>fallback(),{enableHighAccuracy:true,timeout:8000});
 }
 
-function fallbackLocation(){
-  // Default to San Diego
-  userLat = 32.7157;
-  userLng = -117.1611;
-  document.getElementById('location-label').value = 'San Diego, CA';
-  document.getElementById('profile-loc').textContent = 'San Diego, CA';
-  initMap(userLat, userLng);
-  loadSpecies();
+// Center map so the user dot appears in the middle of the VISIBLE portion above the sheet
+function centerOnUser(){
+  if(!map || userLat===null) return;
+  const mapEl = document.getElementById('map');
+  const sheet  = document.getElementById('bottom-sheet');
+  const mapH   = mapEl.offsetHeight;
+  const sheetH = sheet.offsetHeight; // actual rendered height, works for both states
+
+  // paddingBottom shifts the focal point up by half the sheet height
+  // so the user dot ends up centred in the visible window above the sheet
+  map.setView([userLat, userLng], map.getZoom(), {
+    animate: true,
+    paddingTopLeft:    [0, 0],
+    paddingBottomRight:[0, sheetH]
+  });
+}
+function fallback(){userLat=32.7157;userLng=-117.1611;setLoc('San Diego, CA');initMap(userLat,userLng);loadSpecies();}
+function setLoc(t){document.getElementById('search-input').placeholder=t;document.getElementById('profile-loc').textContent=t;}
+async function reverseGeocode(lat,lng){
+  try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,{headers:{'Accept-Language':'en'}});const d=await r.json();const p=d.address?.city||d.address?.town||d.address?.village||'Your location';const s=d.address?.state||'';setLoc(s?`${p}, ${s}`:p);}catch(e){setLoc('Your location');}
 }
 
-async function reverseGeocode(lat, lng){
-  try {
-    const r = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=place&access_token=${MAPBOX_TOKEN}`
-    );
-    const d = await r.json();
-    const place = d.features?.[0]?.place_name?.split(',').slice(0,2).join(',') || 'Your location';
-    document.getElementById('location-label').value = place;
-    document.getElementById('profile-loc').textContent = place;
-  } catch(e){
-    document.getElementById('location-label').value = 'Your location';
-  }
+let st;
+document.getElementById('search-input').addEventListener('input',e=>{
+  clearTimeout(st);const q=e.target.value.trim();
+  if(q.length<3){document.getElementById('search-results').style.display='none';return;}
+  st=setTimeout(()=>doSearch(q),400);
+});
+async function doSearch(q){
+  try{const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,{headers:{'Accept-Language':'en'}});const res=await r.json();const box=document.getElementById('search-results');if(!res.length){box.style.display='none';return;}
+  box.innerHTML=res.map(i=>`<div class="search-result-item" onclick="flyTo(${i.lat},${i.lon},'${i.display_name.split(',').slice(0,2).join(',').replace(/'/g,"\\'")}')"> ${i.display_name.split(',').slice(0,3).join(', ')}</div>`).join('');box.style.display='block';}catch(e){}
 }
+function flyTo(lat,lng,name){userLat=parseFloat(lat);userLng=parseFloat(lng);map.setView([userLat,userLng],13);userMarker&&userMarker.setLatLng([userLat,userLng]);document.getElementById('search-input').value=name;document.getElementById('search-results').style.display='none';loadSpecies();}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))document.getElementById('search-results').style.display='none';});
 
-// ============================================================
-// RADIUS
-// ============================================================
-function setRadius(km, el){
-  currentRadius = km;
-  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  clearObsMarkers();
-  loadSpecies();
-}
+const FILTERS={animals:{iconic_taxa:'Mammalia,Aves,Reptilia,Amphibia'},plants:{iconic_taxa:'Plantae'},insects:{iconic_taxa:'Insecta,Arachnida'}};
+function setFilter(f,el){currentFilter=f;document.querySelectorAll('.pill:not(.radius-pill)').forEach(p=>p.classList.remove('active'));el.classList.add('active');loadSpecies();}
+function setRadius(km,el){currentRadius=km;document.querySelectorAll('.radius-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');clearMarkers();loadSpecies();}
 
-// ============================================================
-// LOAD SPECIES FROM INATURALIST
-// ============================================================
 async function loadSpecies(){
-  if(!userLat) return;
-  const row = document.getElementById('species-row');
-  row.innerHTML = '<div class="loading-row">' +
-    '<div class="skeleton" style="width:96px;height:120px;flex-shrink:0"></div>'.repeat(4) +
-    '</div>';
-
-  const today = new Date();
-  const monthAgo = new Date(today - 30*24*60*60*1000);
-  const d1 = monthAgo.toISOString().split('T')[0];
-
-  const url = `${INAT_BASE}/observations?` + new URLSearchParams({
-    lat: userLat,
-    lng: userLng,
-    radius: currentRadius,
-    quality_grade: 'research',
-    has: 'photos',
-    per_page: 40,
-    order: 'observed_on',
-    order_by: 'observed_on',
-    d1: d1
-  });
-
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if(!data.results || data.results.length === 0){
-      row.innerHTML = '<div class="empty-state">No research-grade observations found nearby. Try a larger radius.</div>';
-      return;
-    }
-    // Deduplicate by taxon
-    const seen = new Set();
-    const unique = data.results.filter(o => {
-      if(!o.taxon || seen.has(o.taxon.id)) return false;
-      seen.add(o.taxon.id);
-      return true;
-    }).slice(0, 10);
-
-    renderSpeciesCards(unique);
-    plotObservationsOnMap(data.results);
-    updateProfileStats(data.results.length);
-  } catch(e){
-    row.innerHTML = '<div class="empty-state">Could not load species. Check your connection.</div>';
-  }
+  if(!userLat)return;
+  const row=document.getElementById('species-row');
+  row.innerHTML='<div style="display:flex;gap:10px">'+'<div class="skeleton" style="width:96px;height:120px;flex-shrink:0"></div>'.repeat(4)+'</div>';
+  const d1=new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
+  const p=new URLSearchParams({lat:userLat,lng:userLng,radius:currentRadius,quality_grade:'research',has:'photos',per_page:50,order_by:'observed_on',d1,iconic_taxa:FILTERS[currentFilter].iconic_taxa});
+  try{const res=await fetch(`${INAT_BASE}/observations?${p}`);const data=await res.json();
+    if(!data.results?.length){row.innerHTML='<div class="empty-state">No observations found. Try a larger radius.</div>';return;}
+    const seen=new Set();const unique=data.results.filter(o=>{if(!o.taxon||seen.has(o.taxon.id))return false;seen.add(o.taxon.id);return true;}).slice(0,12);
+    renderCards(unique);plotAll(data.results);
+    document.getElementById('stat-obs').textContent=data.results.length;document.getElementById('stat-species').textContent=seen.size;
+  }catch(e){row.innerHTML='<div class="empty-state">Could not load species.</div>';}
 }
 
-function renderSpeciesCards(observations){
-  const row = document.getElementById('species-row');
-  row.innerHTML = '';
-  observations.forEach((obs, i) => {
-    const taxon = obs.taxon;
-    const name = taxon.preferred_common_name || taxon.name || 'Unknown species';
-    const sciName = taxon.name || '';
-    const photo = obs.photos?.[0]?.url?.replace('square','small') || '';
-    const date = obs.observed_on ? new Date(obs.observed_on).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
-
-    const card = document.createElement('div');
-    card.className = 'species-card';
-    card.innerHTML = photo
-      ? `<img class="species-img" src="${photo}" alt="${name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=species-img-placeholder>🦎</div>'+this.parentNode.innerHTML.slice(this.parentNode.innerHTML.indexOf('<div class=species-info'))"/>`
-      : `<div class="species-img-placeholder">🌿</div>`;
-    card.innerHTML += `<div class="species-info"><div class="species-name">${name}</div><div class="species-count">${date}</div></div>`;
-    card.onclick = () => selectSpecies(obs, card);
-    row.appendChild(card);
-    if(i === 0) setTimeout(() => selectSpecies(obs, card), 300);
-  });
-}
-
-// ============================================================
-// SELECT SPECIES → TRAIL RECOMMENDATIONS
-// ============================================================
-async function selectSpecies(obs, cardEl){
-  document.querySelectorAll('.species-card').forEach(c => c.classList.remove('selected'));
-  if(cardEl) cardEl.classList.add('selected');
-  currentSpecies = obs;
-  const name = obs.taxon?.preferred_common_name || obs.taxon?.name || 'Species';
-  document.getElementById('trail-title').textContent = `Trails for ${name}`;
-
-  const list = document.getElementById('trail-list');
-  list.innerHTML = '<div class="empty-state">Finding trails...</div>';
-
-  // Fetch more obs of this taxon to score trails
-  try {
-    const url = `${INAT_BASE}/observations?` + new URLSearchParams({
-      taxon_id: obs.taxon.id,
-      lat: userLat,
-      lng: userLng,
-      radius: currentRadius,
-      quality_grade: 'research',
-      per_page: 100,
-      month: new Date().getMonth() + 1
-    });
-    const res = await fetch(url);
-    const data = await res.json();
-    const results = data.results || [];
-    updateObsMarkers(results, obs.taxon);
-    renderTrailRecommendations(results, name);
-  } catch(e){
-    list.innerHTML = '<div class="empty-state">Could not load trail data.</div>';
-  }
-}
-
-// ============================================================
-// TRAIL RECOMMENDATIONS (scored by observation density)
-// ============================================================
-function renderTrailRecommendations(observations, speciesName){
-  const list = document.getElementById('trail-list');
-
-  // Named areas near observations — use cluster centroids
-  const trails = generateTrailSuggestions(observations);
-  if(trails.length === 0){
-    list.innerHTML = '<div class="empty-state">No trail data found for this species nearby.</div>';
-    return;
-  }
-
-  list.innerHTML = '';
-  trails.slice(0,3).forEach((t, i) => {
-    const card = document.createElement('div');
-    card.className = 'trail-card' + (i===0 ? ' top' : '');
-    card.innerHTML = `
-      <div class="trail-icon ${i===0?'':'dim'}">
-        <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
-          <path d="M3 17 Q7 10 10 7 Q13 4 17 3" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
-          ${i===0?'<circle cx="10" cy="10" r="2.5" fill="white" opacity="0.7"/>':''}
-        </svg>
-      </div>
-      <div class="trail-meta">
-        <div class="trail-name">${t.name}</div>
-        <div class="trail-sub">${t.count} sighting${t.count!==1?'s':''} · ${t.dist} km away</div>
-      </div>
-      <span class="badge ${i===0?'':'dim'}">${i===0?'Best match':i===1?'Likely':'Possible'}</span>`;
-    card.onclick = () => {
-      trailsHiked.add(t.name);
-      document.getElementById('stat-trails').textContent = trailsHiked.size;
-      map.setView([t.lat, t.lng], 14);
-      switchScreen('home');
+function renderCards(observations){
+  const row=document.getElementById('species-row');row.innerHTML='';
+  observations.forEach((obs,i)=>{
+    const name=obs.taxon?.preferred_common_name||obs.taxon?.name||'Unknown';
+    const photo=obs.photos?.[0]?.url?.replace('square','small')||'';
+    const date=obs.observed_on?new Date(obs.observed_on).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+    const card=document.createElement('div');card.className='species-card';
+    card.innerHTML=(photo?`<img class="species-img" src="${photo}" alt="${name}" loading="lazy"/>`:`<div class="species-img-placeholder">${currentFilter==='plants'?'🌿':currentFilter==='insects'?'🦋':'🐾'}</div>`)
+      +`<div class="species-info"><div class="species-name">${name}</div><div class="species-count">${date}</div></div>`;
+    card.onclick=()=>{
+      if(card.classList.contains('selected')){
+        card.classList.remove('selected');currentSpecies=null;
+        document.getElementById('trail-title').textContent='Trail predictions';
+        document.getElementById('trail-list').innerHTML='<div class="empty-state">Select a species to see predicted trails</div>';
+        clearMarkers();setMini(null,null,null,null);return;
+      }
+      selectSpecies(obs,card);
     };
+    row.appendChild(card);
+    if(i===0)setTimeout(()=>selectSpecies(obs,card),400);
+  });
+}
+
+async function selectSpecies(obs,cardEl){
+  document.querySelectorAll('.species-card').forEach(c=>c.classList.remove('selected'));cardEl&&cardEl.classList.add('selected');currentSpecies=obs;
+  const name=obs.taxon?.preferred_common_name||obs.taxon?.name||'Species';
+  const photo=obs.photos?.[0]?.url?.replace('square','small')||'';
+  document.getElementById('trail-title').textContent=`Predicted trails — ${name}`;
+  document.getElementById('trail-list').innerHTML='<div class="empty-state">Calculating predictions...</div>';
+  setMini(name,photo,'Calculating...',null);
+  try{
+    const p=new URLSearchParams({taxon_id:obs.taxon.id,lat:userLat,lng:userLng,radius:currentRadius,quality_grade:'research',per_page:200,month:new Date().getMonth()+1});
+    const res=await fetch(`${INAT_BASE}/observations?${p}`);const data=await res.json();
+    const results=data.results||[];updateMarkers(results,obs.taxon);renderPredictions(results,name,photo);
+  }catch(e){document.getElementById('trail-list').innerHTML='<div class="empty-state">Could not load prediction data.</div>';}
+}
+
+function renderPredictions(observations,speciesName,speciesPhoto){
+  const list=document.getElementById('trail-list');
+  if(!observations.length){list.innerHTML='<div class="empty-state">Not enough data to predict trails.</div>';return;}
+  const trails=scorePredictions(observations);
+  if(!trails.length){list.innerHTML='<div class="empty-state">No trail predictions available.</div>';return;}
+  setMini(speciesName,speciesPhoto,trails[0].name,trails[0].pct);
+  list.innerHTML='';
+  trails.forEach((t,i)=>{
+    const card=document.createElement('div');
+    card.className='trail-card'+(i===0?' top':'');
+    const bClass=i===0?'badge-high':i===1?'badge-med':'badge-low';
+    const bLabel=i===0?'Best match':i===1?'Likely':'Possible';
+    card.innerHTML=`<div class="trail-icon ${i===0?'':'dim'}"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 17 Q7 10 10 7 Q13 4 17 3" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/></svg></div>
+      <div class="trail-meta"><div class="trail-name-el">${t.name}</div><div class="trail-sub">${t.sightings} sighting${t.sightings!==1?'s':''} · ${t.dist} km · ${t.month_label}</div><div class="pct-bar"><div class="pct-fill" style="width:${t.pct}%"></div></div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="badge-pill ${bClass}">${bLabel}</span><span style="font-size:12px;font-weight:700;color:var(--green)">${t.pct}%</span></div>`;
+    card.onclick=()=>getDirections(t,speciesName,speciesPhoto);
     list.appendChild(card);
   });
 }
 
-function generateTrailSuggestions(observations){
-  if(!observations.length) return [];
-  // Cluster observations by proximity and score
-  const clusters = [];
-  const used = new Set();
-  observations.forEach((obs, i) => {
-    if(used.has(i) || !obs.location) return;
-    const [lat, lng] = obs.location.split(',').map(Number);
-    const cluster = { lat, lng, count:1, obs:[obs] };
-    observations.forEach((obs2, j) => {
-      if(i===j || used.has(j) || !obs2.location) return;
-      const [lat2, lng2] = obs2.location.split(',').map(Number);
-      if(haversine(lat, lng, lat2, lng2) < 1.5){
-        cluster.count++;
-        cluster.obs.push(obs2);
-        used.add(j);
+function scorePredictions(observations){
+  if(!observations.length)return[];
+  const used=new Set(),clusters=[];
+  observations.forEach((obs,i)=>{if(used.has(i)||!obs.location)return;const[lat,lng]=obs.location.split(',').map(Number);const c={lat,lng,obs:[obs]};observations.forEach((o2,j)=>{if(i===j||used.has(j)||!o2.location)return;const[la2,ln2]=o2.location.split(',').map(Number);if(hav(lat,lng,la2,ln2)<1.5){c.obs.push(o2);used.add(j);}});used.add(i);clusters.push(c);});
+  const total=observations.length,cm=new Date().getMonth();
+  const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return clusters.sort((a,b)=>b.obs.length-a.obs.length).slice(0,4).map((c,idx)=>{
+    const raw=c.obs.length/total,recent=c.obs.filter(o=>o.observed_on&&new Date(o.observed_on).getMonth()===cm).length,boost=recent/Math.max(c.obs.length,1)*0.2;
+    return{lat:c.lat,lng:c.lng,sightings:c.obs.length,pct:Math.min(Math.round((raw+boost)*100+(3-idx)*5),97),dist:hav(userLat,userLng,c.lat,c.lng).toFixed(1),name:trailName(c.lat,c.lng),month_label:recent>0?`Active in ${MO[cm]}`:'Historical'};
+  });
+}
+const TN=['Ridge Loop Trail','Canyon View Trail','Meadow Path','Oak Woodland Trail','Creek Side Walk','Summit Trail','Nature Reserve Path','Coastal Bluff Trail','Valley Trail','Forest Loop','Riparian Trail','Hilltop Walk','Cedar Ridge Trail','Wildflower Walk','Desert View Trail','Pine Grove Path'];
+function trailName(lat,lng){return TN[Math.abs(Math.round((lat+lng)*137))%TN.length];}
+function hav(la1,ln1,la2,ln2){const R=6371,dL=(la2-la1)*Math.PI/180,dl=(ln2-ln1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dl/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+
+// DIRECTIONS — Apple Maps blue route
+async function getDirections(trail,sName,sPhoto){
+  clearRoute();selectedTrail=trail;
+  try{
+    const url=`https://router.project-osrm.org/route/v1/foot/${userLng},${userLat};${trail.lng},${trail.lat}?overview=full&geometries=geojson`;
+    const res=await fetch(url);const data=await res.json();const route=data.routes?.[0];if(!route)return;
+
+    // Single Apple Maps blue line
+    routeLayer=L.geoJSON(route.geometry,{
+      style:{color:'#007AFF',weight:5,opacity:0.92,lineCap:'round',lineJoin:'round'}
+    }).addTo(map);
+
+    map.fitBounds(routeLayer.getBounds(),{padding:[60,80]});
+
+    const dist=(route.distance/1000).toFixed(1),mins=Math.round(route.duration/60);
+    document.getElementById('route-title').textContent=`Route to ${trail.name}`;
+    document.getElementById('route-sub').textContent=`${dist} km · ~${mins} min walk`;
+    document.getElementById('route-info').classList.add('show');
+    trailsHiked.add(trail.name);document.getElementById('stat-trails').textContent=trailsHiked.size;
+    if(sheetMinimized)toggleSheet();
+    if(sName)setMini(sName,sPhoto,trail.name,trail.pct);
+  }catch(e){console.error('Route error',e);}
+}
+function clearRoute(){
+  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+  selectedTrail=null;document.getElementById('route-info').classList.remove('show');
+}
+async function getDirectionsToModal(){
+  const obs = currentModalObs;
+  closeModal();
+  if(!obs || !obs.location) return;
+  const parts = obs.location.split(',').map(Number);
+  const lat = parts[0], lng = parts[1];
+  if(isNaN(lat) || isNaN(lng)) return;
+  const name = obs.taxon?.preferred_common_name || obs.taxon?.name || 'Sighting';
+  // Switch to map screen first so Leaflet has a visible container to draw into
+  switchScreen('home');
+  // Wait for the screen transition and map resize to complete
+  await new Promise(r => setTimeout(r, 300));
+  map.invalidateSize();
+  await getDirections({lat, lng, name, pct:null, sightings:1, dist:'?', month_label:''}, name, '');
+}
+
+// MARKERS — larger dots
+const TC={Aves:'#EF9F27',Mammalia:'#D85A30',Reptilia:'#5DCAA5',Amphibia:'#7F77DD',Insecta:'#1D9E75',Plantae:'#639922',Fungi:'#BA7517',default:'#E8740C'};
+function clearMarkers(){obsMarkers.forEach(m=>map&&map.removeLayer(m));obsMarkers=[];}
+function fmt(obs){if(obs.time_observed_at)return new Date(obs.time_observed_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});if(obs.observed_on)return new Date(obs.observed_on).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});return'Time unknown';}
+function dotIcon(color,size){return L.divIcon({className:'',html:`<div class="obs-dot" style="width:${size}px;height:${size}px;background:${color}"></div>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});}
+
+// Safe obs store — avoids JSON encoding bugs in onclick attributes
+const obsStore = new Map();
+let obsStoreKey = 0;
+function storeObs(obs){
+  const key = 'obs_' + (obsStoreKey++);
+  obsStore.set(key, obs);
+  return key;
+}
+
+function updateMarkers(observations,taxon){
+  clearMarkers();
+  const color=TC[taxon?.iconic_taxon_name]||TC.default;
+  observations.forEach(obs=>{
+    if(!obs.location)return;
+    const[lat,lng]=obs.location.split(',').map(Number);
+    const name=obs.taxon?.preferred_common_name||obs.taxon?.name||'Species';
+    const photo=obs.photos?.[0]?.url?.replace('square','thumb')||'';
+    const timeStr=fmt(obs);
+    const key=storeObs(obs);
+    const m=L.marker([lat,lng],{icon:dotIcon(color,16)}).addTo(map);
+    m.bindPopup(`${photo?`<img class="inat-popup-img" src="${photo}" onerror="this.style.display='none'" alt="${name}"/>`:''}
+      <div class="inat-popup-name">${name}</div><div class="inat-popup-sci">${obs.taxon?.name||''}</div>
+      <div class="inat-popup-time"><svg width="11" height="11" fill="none" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" stroke="#9c9a92" stroke-width="1.2"/><path d="M7 4.5V7L8.5 8.5" stroke="#9c9a92" stroke-width="1.2" stroke-linecap="round"/></svg>${timeStr}</div>
+      <button class="inat-popup-btn" onclick="openModalByKey('${key}')">View details</button>`,{maxWidth:200});
+    obsMarkers.push(m);
+  });
+}
+
+function plotAll(observations){
+  clearMarkers();
+  observations.slice(0,40).forEach(obs=>{
+    if(!obs.location)return;
+    const[lat,lng]=obs.location.split(',').map(Number);
+    const color=TC[obs.taxon?.iconic_taxon_name]||TC.default;
+    const name=obs.taxon?.preferred_common_name||obs.taxon?.name||'Species';
+    const timeStr=fmt(obs);
+    const key=storeObs(obs);
+    const m=L.marker([lat,lng],{icon:dotIcon(color,14)}).addTo(map);
+    m.bindPopup(`<div class="inat-popup-name">${name}</div>
+      <div class="inat-popup-time"><svg width="11" height="11" fill="none" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" stroke="#9c9a92" stroke-width="1.2"/><path d="M7 4.5V7L8.5 8.5" stroke="#9c9a92" stroke-width="1.2" stroke-linecap="round"/></svg>${timeStr}</div>
+      <button class="inat-popup-btn" onclick="openModalByKey('${key}')">View details</button>`,{maxWidth:180});
+    obsMarkers.push(m);
+  });
+}
+
+// MODAL — rich iNaturalist details
+function openModalByKey(key){
+  map.closePopup();
+  const obs=obsStore.get(key);
+  if(!obs){console.warn('obs not found for key',key);return;}
+  openModal(obs);
+}
+// Keep old function as fallback for any remaining references
+function openModalFromStr(jsonStr){map.closePopup();try{openModal(JSON.parse(jsonStr.replace(/&quot;/g,'"')));}catch(e){console.error('parse fail',e);}}
+async function openModal(obs){
+  currentModalObs=obs;
+  const taxon=obs.taxon||{};
+  const name=taxon.preferred_common_name||taxon.name||'Unknown';
+  const sci=taxon.name||'';
+  const photo=obs.photos?.[0]?.url?.replace('square','medium')||'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/320px-No_image_available.svg.png';
+  const timeStr=fmt(obs);
+  document.getElementById('modal-img').src=photo;
+  document.getElementById('modal-name').textContent=name;
+  document.getElementById('modal-sci').textContent=sci;
+  const chips=[];
+  if(taxon.iconic_taxon_name)chips.push(`<span class="modal-chip">${taxon.iconic_taxon_name}</span>`);
+  if(obs.place_guess)chips.push(`<span class="modal-chip g">${obs.place_guess}</span>`);
+  if(obs.quality_grade)chips.push(`<span class="modal-chip g">${obs.quality_grade.replace('_',' ')}</span>`);
+  document.getElementById('modal-chips').innerHTML=chips.join('');
+  document.getElementById('modal-facts').innerHTML=`
+    <div class="modal-fact"><div class="modal-fact-label">Observed</div><div class="modal-fact-value">${timeStr}</div></div>
+    <div class="modal-fact"><div class="modal-fact-label">Quality grade</div><div class="modal-fact-value">${obs.quality_grade||'—'}</div></div>
+    <div class="modal-fact"><div class="modal-fact-label">Location</div><div class="modal-fact-value">${obs.place_guess||'Unknown'}</div></div>
+    <div class="modal-fact"><div class="modal-fact-label">Source</div><div class="modal-fact-value">iNaturalist</div></div>`;
+  document.getElementById('modal-desc').textContent='Loading species info...';
+  document.getElementById('species-modal').classList.add('show');
+  if(taxon.id){
+    try{
+      const res=await fetch(`${INAT_BASE}/taxa/${taxon.id}`);const data=await res.json();const t=data.results?.[0];
+      if(t){
+        const wiki=(t.wikipedia_summary||t.description||'').replace(/<[^>]+>/g,'');
+        const clip=wiki.slice(0,300);
+        document.getElementById('modal-desc').textContent=clip?(clip+(wiki.length>300?'…':'')):'No description available.';
+        document.getElementById('modal-facts').innerHTML=`
+          <div class="modal-fact"><div class="modal-fact-label">Observed</div><div class="modal-fact-value">${timeStr}</div></div>
+          <div class="modal-fact"><div class="modal-fact-label">Taxonomic rank</div><div class="modal-fact-value">${t.rank||'—'}</div></div>
+          <div class="modal-fact"><div class="modal-fact-label">Location</div><div class="modal-fact-value">${obs.place_guess||'Unknown'}</div></div>
+          <div class="modal-fact"><div class="modal-fact-label">Global sightings</div><div class="modal-fact-value">${(t.observations_count||0).toLocaleString()}</div></div>`;
       }
-    });
-    used.add(i);
-    clusters.push(cluster);
-  });
-
-  return clusters
-    .sort((a,b) => b.count - a.count)
-    .slice(0,3)
-    .map(c => ({
-      lat: c.lat,
-      lng: c.lng,
-      count: c.count,
-      dist: haversine(userLat, userLng, c.lat, c.lng).toFixed(1),
-      name: nearestTrailName(c.lat, c.lng)
-    }));
+    }catch(e){document.getElementById('modal-desc').textContent='Species info unavailable.';}
+  }
 }
+function closeModal(){document.getElementById('species-modal').classList.remove('show');currentModalObs=null;}
 
-const TRAIL_NAMES = [
-  'Ridge Loop Trail','Canyon View Trail','Meadow Path',
-  'Oak Woodland Trail','Creek Side Walk','Summit Trail',
-  'Nature Reserve Path','Coastal Bluff Trail','Valley Trail',
-  'Forest Loop','Riparian Trail','Hilltop Walk'
-];
-function nearestTrailName(lat, lng){
-  const idx = Math.abs(Math.round((lat + lng) * 100)) % TRAIL_NAMES.length;
-  return TRAIL_NAMES[idx];
+// IDENTIFY
+let identifiedObs=null,isDemoScan=false;
+function runDemoScan(){
+  if(isDemoScan)return;isDemoScan=true;
+  document.getElementById('scan-bar').style.display='block';
+  document.getElementById('result-overlay').style.display='none';
+  document.getElementById('upload-card').style.display='none';
+  document.getElementById('tap-hint').textContent='Scanning...';
+  setTimeout(()=>{
+    document.getElementById('scan-bar').style.display='none';
+    document.getElementById('result-name').textContent='Western Gorilla';
+    document.getElementById('result-sci').textContent='Gorilla gorilla';
+    document.getElementById('result-conf').textContent='97% confidence';
+    document.getElementById('result-overlay').style.display='flex';
+    document.getElementById('upload-title').textContent='Western Gorilla identified';
+    document.getElementById('upload-sub').textContent='Gorilla gorilla · 97% · iNaturalist AI';
+    document.getElementById('upload-card').style.display='block';
+    document.getElementById('tap-hint').textContent='Ready to upload';
+    identifiedObs={taxon:{id:42873,name:'Gorilla gorilla',preferred_common_name:'Western Gorilla',iconic_taxon_name:'Mammalia'},photo:document.getElementById('demo-img').src,confidence:0.97};
+    isDemoScan=false;
+  },2400);
 }
-function haversine(lat1, lng1, lat2, lng2){
-  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
-  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-
-// ============================================================
-// MAP MARKERS
-// ============================================================
-const TAXON_COLORS = {
-  Aves:'#EF9F27',Mammalia:'#D85A30',Reptilia:'#5DCAA5',
-  Amphibia:'#7F77DD',Insecta:'#1D9E75',Plantae:'#639922',
-  Fungi:'#BA7517',default:'#888780'
-};
-
-function clearObsMarkers(){
-  obsMarkers.forEach(m => map.removeLayer(m));
-  obsMarkers = [];
-}
-
-function updateObsMarkers(observations, taxon){
-  clearObsMarkers();
-  const color = TAXON_COLORS[taxon?.iconic_taxon_name] || TAXON_COLORS.default;
-  observations.forEach(obs => {
-    if(!obs.location) return;
-    const [lat, lng] = obs.location.split(',').map(Number);
-    const name = obs.taxon?.preferred_common_name || obs.taxon?.name || 'Species';
-    const photo = obs.photos?.[0]?.url?.replace('square','thumb') || '';
-    const date = obs.observed_on || '';
-    const icon = L.divIcon({
-      className:'',
-      html:`<div class="obs-marker" style="background:${color}">
-        ${taxon?.iconic_taxon_name==='Aves'?'🐦':taxon?.iconic_taxon_name==='Mammalia'?'🦊':taxon?.iconic_taxon_name==='Reptilia'?'🦎':'🌿'}
-      </div>`,
-      iconSize:[28,28], iconAnchor:[14,14]
-    });
-    const marker = L.marker([lat, lng], {icon}).addTo(map);
-    marker.bindPopup(`
-      ${photo?`<img class="inat-popup-img" src="${photo}" onerror="this.style.display='none'"/>`:''}
-      <div class="inat-popup-name">${name}</div>
-      <div class="inat-popup-sci">${obs.taxon?.name||''}</div>
-      <div class="inat-popup-meta">Seen ${date} · iNaturalist</div>
-    `, {maxWidth:180});
-    obsMarkers.push(marker);
-  });
-}
-
-function plotObservationsOnMap(observations){
-  clearObsMarkers();
-  observations.slice(0,30).forEach(obs => {
-    if(!obs.location) return;
-    const [lat, lng] = obs.location.split(',').map(Number);
-    const color = TAXON_COLORS[obs.taxon?.iconic_taxon_name] || TAXON_COLORS.default;
-    const icon = L.divIcon({
-      className:'',
-      html:`<div style="width:10px;height:10px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,
-      iconSize:[10,10], iconAnchor:[5,5]
-    });
-    const marker = L.marker([lat, lng], {icon}).addTo(map);
-    const name = obs.taxon?.preferred_common_name || obs.taxon?.name || 'Species';
-    marker.bindPopup(`<div class="inat-popup-name">${name}</div><div class="inat-popup-meta">${obs.observed_on||''}</div>`, {maxWidth:160});
-    obsMarkers.push(marker);
-  });
-}
-
-// ============================================================
-// PROFILE STATS
-// ============================================================
-function updateProfileStats(count){
-  document.getElementById('stat-obs').textContent = count;
-  const seen = new Set();
-  document.querySelectorAll('.species-card').forEach(c => seen.add(c.querySelector('.species-name')?.textContent));
-  document.getElementById('stat-species').textContent = seen.size || Math.floor(count * 0.6);
-}
-
-// ============================================================
-// IDENTIFY / CAMERA SCREEN
-// ============================================================
-let identifiedObs = null;
-
 async function handlePhoto(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = async evt => {
-    document.getElementById('vf-hint').style.display='none';
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async evt=>{
+    document.getElementById('demo-img').src=evt.target.result;
     document.getElementById('scan-bar').style.display='block';
     document.getElementById('result-overlay').style.display='none';
     document.getElementById('upload-card').style.display='none';
     document.getElementById('tap-hint').textContent='Identifying...';
-
-    // Call iNaturalist computer vision API
-    try {
-      const base64 = evt.target.result.split(',')[1];
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('lat', userLat || 32.7);
-      formData.append('lng', userLng || -117.1);
-
-      const res = await fetch('https://api.inaturalist.org/v1/computervision/score_image', {
-        method:'POST',
-        headers:{ Authorization: INAT_TOKEN },
-        body: formData
-      });
-      const data = await res.json();
-      const top = data.results?.[0];
-      if(top){
-        identifiedObs = { taxon: top.taxon, photo: evt.target.result, confidence: top.combined_score };
-        showIdentifyResult(top, evt.target.result);
-      } else {
-        showIdentifyError();
-      }
-    } catch(err){
-      showIdentifyError();
-    }
+    try{
+      const fd=new FormData();fd.append('image',file);
+      if(userLat){fd.append('lat',userLat);fd.append('lng',userLng);}
+      const res=await fetch(`${INAT_BASE}/computervision/score_image`,{method:'POST',headers:{Authorization:INAT_TOKEN},body:fd});
+      const data=await res.json();const top=data.results?.[0];
+      if(top)showResult(top,evt.target.result);else showErr();
+    }catch(err){showErr();}
   };
-  reader.readAsDataURL(file);
-  e.target.value = '';
+  reader.readAsDataURL(file);e.target.value='';
 }
-
-function showIdentifyResult(result, imgSrc){
+function showResult(result,img){
   document.getElementById('scan-bar').style.display='none';
-  const taxon = result.taxon;
-  const name = taxon.preferred_common_name || taxon.name || 'Unknown';
-  const sci = taxon.name || '';
-  const conf = Math.round((result.combined_score||0.9) * 100);
-
-  document.getElementById('result-img').src = imgSrc;
-  document.getElementById('result-name').textContent = name;
-  document.getElementById('result-sci').textContent = sci;
-  document.getElementById('result-conf').textContent = conf + '% confidence';
-  document.getElementById('result-overlay').style.display = 'flex';
-
-  document.getElementById('upload-title').textContent = name + ' identified';
-  document.getElementById('upload-sub').textContent = sci + ' · ' + conf + '% confidence';
-  document.getElementById('upload-card').style.display = 'block';
-  document.getElementById('tap-hint').textContent = 'Ready to upload';
+  const name=result.taxon?.preferred_common_name||result.taxon?.name||'Unknown';
+  const sci=result.taxon?.name||'';const conf=Math.round((result.combined_score||0.9)*100);
+  document.getElementById('result-name').textContent=name;
+  document.getElementById('result-sci').textContent=sci;
+  document.getElementById('result-conf').textContent=conf+'% confidence';
+  document.getElementById('result-overlay').style.display='flex';
+  document.getElementById('upload-title').textContent=name+' identified';
+  document.getElementById('upload-sub').textContent=sci+' · '+conf+'% · iNaturalist AI';
+  document.getElementById('upload-card').style.display='block';
+  document.getElementById('tap-hint').textContent='Ready to upload';
+  identifiedObs={taxon:result.taxon,photo:img,confidence:result.combined_score};
 }
-
-function showIdentifyError(){
-  document.getElementById('scan-bar').style.display='none';
-  document.getElementById('vf-hint').style.display='block';
-  document.getElementById('vf-hint').textContent='Could not identify — try a clearer photo';
-  document.getElementById('tap-hint').textContent='Try again';
-}
-
+function showErr(){document.getElementById('scan-bar').style.display='none';document.getElementById('tap-hint').textContent='Could not identify — try a clearer photo';}
 async function uploadObservation(){
-  if(!identifiedObs) return;
-  const btn = document.querySelector('.btn-primary');
-  btn.textContent = 'Uploading...';
-  btn.disabled = true;
-
-  // Post to iNaturalist if token available
-  if(INAT_TOKEN !== 'YOUR_INATURALIST_JWT_TOKEN'){
-    try {
-      await fetch(`${INAT_BASE}/observations`, {
-        method:'POST',
-        headers:{ Authorization: INAT_TOKEN, 'Content-Type':'application/json' },
-        body: JSON.stringify({
-          observation:{
-            taxon_id: identifiedObs.taxon.id,
-            latitude: userLat,
-            longitude: userLng,
-            observed_on_string: new Date().toISOString(),
-            captive_flag: false
-          }
-        })
-      });
-    } catch(e){ /* Continue even if post fails */ }
+  if(!identifiedObs)return;
+  const btn=document.querySelector('#upload-card .cbtn-p');btn.textContent='Uploading...';btn.disabled=true;
+  if(INAT_TOKEN&&INAT_TOKEN!=='YOUR_INATURALIST_JWT_TOKEN'){
+    try{await fetch(`${INAT_BASE}/observations`,{method:'POST',headers:{Authorization:INAT_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({observation:{taxon_id:identifiedObs.taxon.id,latitude:userLat,longitude:userLng,observed_on_string:new Date().toISOString(),captive_flag:false}})});}catch(e){}
   }
-
-  // Add to local profile grid
-  myObservations.push(identifiedObs);
-  renderProfileObservations();
-
-  // Add marker to map
-  if(userLat && userLng && map){
-    const color = TAXON_COLORS[identifiedObs.taxon.iconic_taxon_name] || TAXON_COLORS.default;
-    const icon = L.divIcon({
-      className:'',
-      html:`<div class="obs-marker" style="background:${color};border-color:var(--green)">📸</div>`,
-      iconSize:[28,28], iconAnchor:[14,14]
-    });
-    const m = L.marker([userLat, userLng], {icon}).addTo(map);
-    m.bindPopup(`<div class="inat-popup-name">Your sighting: ${identifiedObs.taxon.preferred_common_name||identifiedObs.taxon.name}</div><div class="inat-popup-meta">Just now · Uploaded to iNaturalist</div>`);
-    obsMarkers.push(m);
-  }
-
-  document.getElementById('upload-card').innerHTML = '<div class="upload-success">Uploaded to map! Other hikers can see your sighting.</div>';
-  document.getElementById('stat-obs').textContent = parseInt(document.getElementById('stat-obs').textContent) + 1;
-  document.getElementById('sightings-count').textContent = myObservations.length + ' uploaded';
-
-  setTimeout(() => { resetCamera(); switchScreen('home'); }, 2000);
+  myObservations.push(identifiedObs);renderObs();
+  if(userLat&&userLng&&map){const color=TC[identifiedObs.taxon.iconic_taxon_name]||TC.default;const m=L.marker([userLat,userLng],{icon:dotIcon(color,16)}).addTo(map);m.bindPopup(`<div class="inat-popup-name">Your sighting: ${identifiedObs.taxon.preferred_common_name||identifiedObs.taxon.name}</div><div class="inat-popup-time">Just now</div>`);obsMarkers.push(m);}
+  document.getElementById('upload-card').innerHTML='<div class="upload-success-cam">Uploaded! Other hikers can see your sighting.</div>';
+  document.getElementById('stat-obs').textContent=parseInt(document.getElementById('stat-obs').textContent||0)+1;
+  document.getElementById('sightings-count').textContent=myObservations.length+' uploaded';
+  setTimeout(()=>{resetCamera();switchScreen('home');},1800);
 }
-
 function resetCamera(){
-  identifiedObs = null;
+  identifiedObs=null;isDemoScan=false;
   document.getElementById('scan-bar').style.display='none';
   document.getElementById('result-overlay').style.display='none';
   document.getElementById('upload-card').style.display='none';
-  document.getElementById('vf-hint').style.display='block';
-  document.getElementById('vf-hint').textContent='Tap shutter or upload\na photo to identify';
-  document.getElementById('tap-hint').textContent='Upload a photo to identify';
-  document.querySelector('.btn-primary') && (document.querySelector('.btn-primary').textContent='Upload to map');
-  document.querySelector('.btn-primary') && (document.querySelector('.btn-primary').disabled=false);
+  document.getElementById('demo-img').src='gorilla.jpg';
+  document.getElementById('tap-hint').textContent='Tap shutter to identify · or upload your own photo';
+}
+function renderObs(){
+  const grid=document.getElementById('obs-grid');
+  if(!myObservations.length){grid.innerHTML='<div class="empty-state" style="grid-column:span 2;padding:24px">Upload species photos to see them here</div>';return;}
+  grid.innerHTML=myObservations.map(o=>`<div class="obs-tile"><img src="${o.photo}" alt="${o.taxon?.name||''}"/><div class="obs-tile-label">${o.taxon?.preferred_common_name||o.taxon?.name||'Species'}</div></div>`).join('');
+  document.getElementById('sightings-count').textContent=myObservations.length+' uploaded';
 }
 
-// ============================================================
-// PROFILE OBSERVATIONS GRID
-// ============================================================
-function renderProfileObservations(){
-  const grid = document.getElementById('obs-grid');
-  if(!myObservations.length){
-    grid.innerHTML = '<div class="empty-state" style="grid-column:span 2;padding:30px">Upload species photos to see them here</div>';
-    return;
-  }
-  grid.innerHTML = myObservations.map(obs => `
-    <div class="obs-tile">
-      <img src="${obs.photo}" alt="${obs.taxon.name}" loading="lazy"/>
-      <div class="obs-tile-label">${obs.taxon.preferred_common_name||obs.taxon.name}</div>
-    </div>
-  `).join('');
-  document.getElementById('sightings-count').textContent = myObservations.length + ' uploaded';
-}
-
-// ============================================================
-// BOOT
-// ============================================================
 locateUser();
 </script>
 </body>
